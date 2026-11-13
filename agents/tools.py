@@ -47,7 +47,10 @@ class FileVersion:
 
     @classmethod
     def from_stat(cls, value: os.stat_result) -> FileVersion:
-        return cls(value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+        # Windows stat and fstat can report different meanings for ctime.
+        # Creation time is consistent across both APIs; mtime tracks writes.
+        changed_ns = getattr(value, "st_birthtime_ns", value.st_ctime_ns) if os.name == "nt" else value.st_ctime_ns
+        return cls(value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, changed_ns)
 
 
 class _FileResult(ToolResult):
